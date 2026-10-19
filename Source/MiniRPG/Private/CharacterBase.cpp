@@ -2,6 +2,7 @@
 
 
 #include "CharacterBase.h"
+#include "MonsterBase.h"
 #include "StatComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
@@ -123,7 +124,7 @@ void ACharacterBase::Attack()
 		UEngineTypes::ConvertToTraceType(ECC_Pawn),
 		false,
 		ActorsToIgnore,
-		EDrawDebugTrace::ForDuration,
+		bDrawAttackDebug ? EDrawDebugTrace::ForDuration : EDrawDebugTrace::None,
 		HitResults,
 		true
 	);
@@ -145,6 +146,14 @@ void ACharacterBase::Attack()
 			UE_LOG(LogTemp, Warning, TEXT("Cast FAILED"));
 			continue;
 		}
+
+		
+		// 같은 편(몬스터→몬스터) 공격 방지
+		if (IsA<AMonsterBase>() && Target->IsA<AMonsterBase>())
+		{
+			continue;
+		}
+		
 
 		UStatComponent* TargetStat = HitActor->FindComponentByClass<UStatComponent>();
 		if (!TargetStat)

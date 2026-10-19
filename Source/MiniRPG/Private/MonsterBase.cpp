@@ -116,9 +116,10 @@ void AMonsterBase::ActivateMonster(const FVector& SpawnLocation)
 {
 	bIsActive = true;
 
-	// 1) 콜리전·이동을 먼저 켠다
+	// 1) 콜리전·이동을 먼저 켬
 	SetActorHiddenInGame(false);
 	SetActorEnableCollision(true);
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics); // 추가
 	SetActorTickEnabled(true);
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 
