@@ -2,6 +2,7 @@
 #include "MonsterBase.h"
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "StatComponent.h"
 
 UBTTask_Attack::UBTTask_Attack()
 {
@@ -25,6 +26,16 @@ EBTNodeResult::Type UBTTask_Attack::ExecuteTask(
 
 	AActor* Target = Cast<AActor>(BB->GetValueAsObject(TargetKey.SelectedKeyName));
 	if (!Target) return EBTNodeResult::Failed;
+	// 타겟이 죽었으면 추적·공격 중단
+	if (UStatComponent* TargetStat = Target->FindComponentByClass<UStatComponent>())
+	{
+		if (TargetStat->IsDead())
+		{
+			BB->ClearValue(TargetKey.SelectedKeyName);
+			return EBTNodeResult::Failed;
+		}
+	}
+	
 
 	// 사거리 밖이면 실패 → Sequence가 중단되고 다시 MoveTo부터
 	const float Dist = FVector::Dist(

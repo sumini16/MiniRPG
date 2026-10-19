@@ -12,12 +12,25 @@ class MINIRPG_API AMiniRPGPlayerController : public APlayerController
 protected:
 	virtual void BeginPlay() override;
 	virtual void OnPossess(APawn* InPawn) override;
+
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<class UHealthWidget> HealthWidgetClass;
 
 	UPROPERTY()
 	class UHealthWidget* HealthWidget;
 
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<class UUserWidget> GameOverWidgetClass;
+
+	UPROPERTY()
+	class UUserWidget* GameOverWidget;
+
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	float GameOverDelay = 2.f;
+
+	FTimerHandle GameOverTimer;
+
 	void SetupHealthWidget();
-	
+	void HandlePlayerDeath();
+	void ShowGameOver();
 };
