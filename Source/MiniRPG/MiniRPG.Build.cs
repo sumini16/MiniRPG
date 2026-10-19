@@ -12,5 +12,7 @@ public class MiniRPG : ModuleRules
 			"Core", "CoreUObject", "Engine", "InputCore",
 			"EnhancedInput", "AIModule", "NavigationSystem",
 			"UMG", "Slate", "SlateCore"});
+		
+		PublicIncludePaths.Add(ModuleDirectory);
 	}
 }

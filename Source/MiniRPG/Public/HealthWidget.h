@@ -11,6 +11,7 @@ class MINIRPG_API UHealthWidget : public UUserWidget
 
 public:
 	void BindStatComponent(class UStatComponent* Stat);
+	void BindWaveProgress(class AMiniRPGGameMode* GameMode);
 
 protected:
 	UPROPERTY(meta = (BindWidget))
@@ -19,12 +20,18 @@ protected:
 	UFUNCTION()
 	void HandleHealthChanged(float Current, float Max);
 
-	UPROPERTY(meta = (BindWidget))
+	UPROPERTY(meta = (BindWidgetOptional))
 	class UProgressBar* ExpBar;
 
-	UPROPERTY(meta = (BindWidget))
+	UPROPERTY(meta = (BindWidgetOptional))
 	class UTextBlock* LevelText;
 
 	UFUNCTION()
 	void HandleExpChanged(int32 CurrentExp, int32 RequiredExp, int32 Level);
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	class UTextBlock* WaveText;
+
+	UFUNCTION()
+	void HandleWaveProgress(int32 WaveNumber, int32 Killed, int32 Total);
 };

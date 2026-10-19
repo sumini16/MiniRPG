@@ -6,6 +6,8 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "MiniRPGGameMode.h"
+
 
 void AMiniRPGPlayerController::BeginPlay()
 {
@@ -43,6 +45,11 @@ void AMiniRPGPlayerController::SetupHealthWidget()
 	if (HealthWidget)
 	{
 		HealthWidget->BindStatComponent(Stat);
+
+		if (AMiniRPGGameMode* GM = GetWorld()->GetAuthGameMode<AMiniRPGGameMode>())
+		{
+			HealthWidget->BindWaveProgress(GM);
+		}
 	}
 }
 

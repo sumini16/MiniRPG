@@ -2,6 +2,9 @@
 #include "Components/ProgressBar.h"
 #include "StatComponent.h"
 #include "Components/TextBlock.h"
+#include "MiniRPGGameMode.h"
+
+
 void UHealthWidget::BindStatComponent(UStatComponent* Stat)
 {
 	if (!Stat) return;
@@ -32,4 +35,18 @@ void UHealthWidget::HandleExpChanged(int32 CurrentExp, int32 RequiredExp, int32 
 	{
 		LevelText->SetText(FText::FromString(FString::Printf(TEXT("Lv. %d"), Level)));
 	}
+}
+
+void UHealthWidget::BindWaveProgress(AMiniRPGGameMode* GameMode)
+{
+	if (!GameMode) return;
+	GameMode->OnWaveProgress.AddUniqueDynamic(this, &UHealthWidget::HandleWaveProgress);
+}
+
+void UHealthWidget::HandleWaveProgress(int32 WaveNumber, int32 Killed, int32 Total)
+{
+	if (!WaveText) return;
+
+	WaveText->SetText(FText::FromString(
+		FString::Printf(TEXT("WAVE %d   %d / %d"), WaveNumber, Killed, Total)));
 }

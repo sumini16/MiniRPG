@@ -1,95 +1,122 @@
 #include "MonsterSpawner.h"
 #include "MonsterBase.h"
+#include "StatComponent.h"
 #include "NavigationSystem.h"
 #include "Components/BillboardComponent.h"
+
 AMonsterSpawner::AMonsterSpawner()
 {
-    PrimaryActorTick.bCanEverTick = false;
-    RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+	PrimaryActorTick.bCanEverTick = false;
+	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 
 #if WITH_EDITORONLY_DATA
-    UBillboardComponent* Billboard =
-        CreateDefaultSubobject<UBillboardComponent>(TEXT("Billboard"));
-    Billboard->SetupAttachment(RootComponent);
+	UBillboardComponent* Billboard =
+		CreateDefaultSubobject<UBillboardComponent>(TEXT("Billboard"));
+	Billboard->SetupAttachment(RootComponent);
 #endif
 }
 
 void AMonsterSpawner::BeginPlay()
 {
-    Super::BeginPlay();
-
-    InitializePool();
-
-    GetWorldTimerManager().SetTimer(
-        SpawnTimer, this, &AMonsterSpawner::TrySpawn, SpawnInterval, true, 1.f);
+	Super::BeginPlay();
+	InitializePool();
+	// 스폰 시작은 GameMode가 StartSpawning()으로 지시한다
 }
 
 void AMonsterSpawner::InitializePool()
 {
-    if (!MonsterClass) return;
+	if (!MonsterClass) return;
 
-    UWorld* World = GetWorld();
-    if (!World) return;
+	UWorld* World = GetWorld();
+	if (!World) return;
 
-    FActorSpawnParameters Params;
-    Params.SpawnCollisionHandlingOverride =
-        ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride =
+		ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-    for (int32 i = 0; i < PoolSize; ++i)
-    {
-        AMonsterBase* Monster = World->SpawnActor<AMonsterBase>(
-            MonsterClass, GetActorLocation(), FRotator::ZeroRotator, Params);
+	for (int32 i = 0; i < PoolSize; ++i)
+	{
+		AMonsterBase* Monster = World->SpawnActor<AMonsterBase>(
+			MonsterClass, GetActorLocation(), FRotator::ZeroRotator, Params);
 
-        if (Monster)
-        {
-            Monster->DeactivateMonster();
-            MonsterPool.Add(Monster);
-        }
-    }
+		if (!Monster) continue;
 
-    UE_LOG(LogTemp, Warning, TEXT("Pool initialized: %d"), MonsterPool.Num());
+		// 몬스터 사망을 구독해 GameMode에 전달 (풀에 있는 동안 한 번만 구독)
+		if (UStatComponent* Stat = Monster->FindComponentByClass<UStatComponent>())
+		{
+			Stat->OnDeath.AddUObject(this, &AMonsterSpawner::HandleMonsterDeath);
+		}
+
+		Monster->DeactivateMonster();
+		MonsterPool.Add(Monster);
+	}
+}
+
+void AMonsterSpawner::StartSpawning(int32 InTotalToSpawn, int32 InMaxAlive, float InInterval)
+{
+	TotalToSpawn = InTotalToSpawn;
+	MaxAliveCount = InMaxAlive;
+	SpawnInterval = InInterval;
+	SpawnedCount = 0;
+
+	GetWorldTimerManager().SetTimer(
+		SpawnTimer, this, &AMonsterSpawner::TrySpawn, SpawnInterval, true, 0.5f);
+}
+
+void AMonsterSpawner::StopSpawning()
+{
+	GetWorldTimerManager().ClearTimer(SpawnTimer);
+}
+
+void AMonsterSpawner::HandleMonsterDeath()
+{
+	OnMonsterKilled.Broadcast();
 }
 
 AMonsterBase* AMonsterSpawner::GetInactiveMonster()
 {
-    for (AMonsterBase* Monster : MonsterPool)
-    {
-        if (Monster && !Monster->IsActiveMonster())
-        {
-            return Monster;
-        }
-    }
-    return nullptr;
+	for (AMonsterBase* Monster : MonsterPool)
+	{
+		if (Monster && !Monster->IsActiveMonster())
+		{
+			return Monster;
+		}
+	}
+	return nullptr;
 }
 
 FVector AMonsterSpawner::GetRandomSpawnLocation() const
 {
-    UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(GetWorld());
-    if (!NavSys) return GetActorLocation();
+	UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(GetWorld());
+	if (!NavSys) return GetActorLocation();
 
-    FNavLocation Result;
-    if (NavSys->GetRandomReachablePointInRadius(GetActorLocation(), SpawnRadius, Result))
-    {
-        UE_LOG(LogTemp, Warning, TEXT("NavOK: %s"), *Result.Location.ToString());
-        return Result.Location + FVector(0.f, 0.f, 90.f);
-    }
-    UE_LOG(LogTemp, Warning, TEXT("Nav FAILED - Spawner at %s"), *GetActorLocation().ToString());
-    return GetActorLocation();
+	FNavLocation Result;
+	if (NavSys->GetRandomReachablePointInRadius(GetActorLocation(), SpawnRadius, Result))
+	{
+		return Result.Location + FVector(0.f, 0.f, 90.f);
+	}
+	return GetActorLocation();
 }
 
 void AMonsterSpawner::TrySpawn()
 {
-    int32 AliveCount = 0;
-    for (AMonsterBase* Monster : MonsterPool)
-    {
-        if (Monster && Monster->IsActiveMonster()) ++AliveCount;
-    }
-    UE_LOG(LogTemp, Warning, TEXT("TrySpawn - Alive:%d / Max:%d"), AliveCount, MaxAliveCount);
+	// 이번 웨이브 할당량을 다 채웠으면 멈춤
+	if (SpawnedCount >= TotalToSpawn)
+	{
+		StopSpawning();
+		return;
+	}
 
-    if (AliveCount >= MaxAliveCount) return;
+	int32 AliveCount = 0;
+	for (AMonsterBase* Monster : MonsterPool)
+	{
+		if (Monster && Monster->IsActiveMonster()) ++AliveCount;
+	}
+	if (AliveCount >= MaxAliveCount) return;
 
-    AMonsterBase* Monster = GetInactiveMonster();
-    if (!Monster) return;
+	AMonsterBase* Monster = GetInactiveMonster();
+	if (!Monster) return;
 
-    Monster->ActivateMonster(GetRandomSpawnLocation());
+	Monster->ActivateMonster(GetRandomSpawnLocation());
+	++SpawnedCount;
 }
