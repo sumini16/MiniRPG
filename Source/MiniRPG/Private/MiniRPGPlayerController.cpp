@@ -1,13 +1,13 @@
 #include "MiniRPGPlayerController.h"
 #include "HealthWidget.h"
+#include "GameOverWidget.h"
 #include "CharacterBase.h"
 #include "StatComponent.h"
+#include "MiniRPGGameMode.h"
 #include "Blueprint/UserWidget.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
-#include "MiniRPGGameMode.h"
-
 
 void AMiniRPGPlayerController::BeginPlay()
 {
@@ -20,6 +20,11 @@ void AMiniRPGPlayerController::BeginPlay()
 	}
 
 	SetupHealthWidget();
+
+	if (AMiniRPGGameMode* GM = GetWorld()->GetAuthGameMode<AMiniRPGGameMode>())
+	{
+		GM->OnGameCleared.AddUObject(this, &AMiniRPGPlayerController::HandleGameCleared);
+	}
 }
 
 void AMiniRPGPlayerController::OnPossess(APawn* InPawn)
@@ -36,7 +41,6 @@ void AMiniRPGPlayerController::SetupHealthWidget()
 	UStatComponent* Stat = MyPawn->FindComponentByClass<UStatComponent>();
 	if (!Stat) return;
 
-	// 사망 알림 구독 (BeginPlay·OnPossess 두 번 호출돼도 한 번만)
 	if (!Stat->OnDeath.IsBoundToObject(this))
 	{
 		Stat->OnDeath.AddUObject(this, &AMiniRPGPlayerController::HandlePlayerDeath);
@@ -57,29 +61,46 @@ void AMiniRPGPlayerController::HandlePlayerDeath()
 {
 	if (ACharacter* MyChar = GetCharacter())
 	{
-		// 1) 조작 차단
 		MyChar->DisableInput(this);
 		MyChar->GetCharacterMovement()->DisableMovement();
 
-		// 2) 래그돌로 쓰러지기
 		MyChar->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		MyChar->GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
 		MyChar->GetMesh()->SetSimulatePhysics(true);
 	}
 
-	// 3) 쓰러지는 모습을 보여준 뒤 UI 표시
 	GetWorldTimerManager().SetTimer(
-		GameOverTimer, this, &AMiniRPGPlayerController::ShowGameOver, GameOverDelay, false);
+		EndScreenTimer,
+		FTimerDelegate::CreateUObject(this, &AMiniRPGPlayerController::ShowEndScreen, false),
+		EndScreenDelay, false);
 }
 
-void AMiniRPGPlayerController::ShowGameOver()
+void AMiniRPGPlayerController::HandleGameCleared()
+{
+	if (APawn* MyPawn = GetPawn())
+	{
+		MyPawn->DisableInput(this);
+	}
+
+	GetWorldTimerManager().SetTimer(
+		EndScreenTimer,
+		FTimerDelegate::CreateUObject(this, &AMiniRPGPlayerController::ShowEndScreen, true),
+		EndScreenDelay, false);
+}
+
+void AMiniRPGPlayerController::ShowEndScreen(bool bCleared)
 {
 	if (!GameOverWidgetClass || GameOverWidget) return;
 
 	GameOverWidget = CreateWidget<UUserWidget>(this, GameOverWidgetClass);
 	if (!GameOverWidget) return;
 
-	GameOverWidget->AddToViewport(10);   // HUD보다 위에 그리기
+	if (UGameOverWidget* EndWidget = Cast<UGameOverWidget>(GameOverWidget))
+	{
+		EndWidget->SetTitle(FText::FromString(bCleared ? TEXT("CLEAR") : TEXT("YOU DIED")));
+	}
+
+	GameOverWidget->AddToViewport(10);
 
 	bShowMouseCursor = true;
 	SetInputMode(FInputModeUIOnly());

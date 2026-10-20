@@ -26,11 +26,12 @@ protected:
 	class UUserWidget* GameOverWidget;
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	float GameOverDelay = 2.f;
+	float EndScreenDelay = 2.f;
 
-	FTimerHandle GameOverTimer;
+	FTimerHandle EndScreenTimer;
 
 	void SetupHealthWidget();
 	void HandlePlayerDeath();
-	void ShowGameOver();
+	void HandleGameCleared();
+	void ShowEndScreen(bool bCleared);
 };

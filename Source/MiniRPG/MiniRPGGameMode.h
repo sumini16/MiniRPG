@@ -20,7 +20,8 @@ struct FWaveInfo
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnWaveProgressSignature, int32, WaveNumber, int32, Killed, int32, Total);
-DECLARE_MULTICAST_DELEGATE(FOnAllWavesClearedSignature);
+DECLARE_MULTICAST_DELEGATE(FOnBossSpawnedSignature);
+DECLARE_MULTICAST_DELEGATE(FOnGameClearedSignature);
 
 UCLASS(minimalapi)
 class AMiniRPGGameMode : public AGameModeBase
@@ -33,7 +34,8 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Wave")
 	FOnWaveProgressSignature OnWaveProgress;
 
-	FOnAllWavesClearedSignature OnAllWavesCleared;
+	FOnBossSpawnedSignature OnBossSpawned;
+	FOnGameClearedSignature OnGameCleared;
 
 protected:
 	virtual void BeginPlay() override;
@@ -47,8 +49,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Wave")
 	float TimeBetweenWaves = 3.f;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Boss")
+	TSubclassOf<class AMonsterBase> BossClass;
+
 	UPROPERTY()
 	class AMonsterSpawner* Spawner;
+
+	UPROPERTY()
+	class AMonsterBase* Boss;
 
 	int32 CurrentWaveIndex = -1;
 	int32 KilledInWave = 0;
@@ -57,4 +65,6 @@ protected:
 	void StartNextWave();
 	void HandleMonsterKilled();
 	void BroadcastProgress();
+	void SpawnBoss();
+	void HandleBossDeath();
 };

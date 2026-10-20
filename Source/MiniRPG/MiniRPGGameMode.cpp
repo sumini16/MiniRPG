@@ -1,5 +1,7 @@
 #include "MiniRPGGameMode.h"
 #include "MonsterSpawner.h"
+#include "MonsterBase.h"
+#include "StatComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "UObject/ConstructorHelpers.h"
 
@@ -11,7 +13,6 @@ AMiniRPGGameMode::AMiniRPGGameMode()
 		DefaultPawnClass = PlayerPawnBPClass.Class;
 	}
 
-	// 기본 웨이브 구성 (BP 디테일 패널에서 조정 가능)
 	FWaveInfo Wave1;
 	Wave1.MonsterCount = 5;
 	Wave1.MaxAlive = 3;
@@ -40,7 +41,6 @@ void AMiniRPGGameMode::BeginPlay()
 
 	Spawner->OnMonsterKilled.AddUObject(this, &AMiniRPGGameMode::HandleMonsterKilled);
 
-	// 스포너의 풀 생성(BeginPlay)이 끝난 뒤에 시작하도록 지연
 	GetWorldTimerManager().SetTimer(
 		WaveTimer, this, &AMiniRPGGameMode::StartNextWave, FirstWaveDelay, false);
 }
@@ -50,10 +50,10 @@ void AMiniRPGGameMode::StartNextWave()
 	++CurrentWaveIndex;
 	KilledInWave = 0;
 
+	// 모든 웨이브를 넘겼으면 보스
 	if (!Waves.IsValidIndex(CurrentWaveIndex))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("All waves cleared"));
-		OnAllWavesCleared.Broadcast();
+		SpawnBoss();
 		return;
 	}
 
@@ -83,4 +83,36 @@ void AMiniRPGGameMode::BroadcastProgress()
 
 	OnWaveProgress.Broadcast(
 		CurrentWaveIndex + 1, KilledInWave, Waves[CurrentWaveIndex].MonsterCount);
+}
+
+void AMiniRPGGameMode::SpawnBoss()
+{
+	if (!BossClass || !Spawner)
+	{
+		UE_LOG(LogTemp, Error, TEXT("BossClass not set"));
+		return;
+	}
+
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride =
+		ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	const FVector Location = Spawner->GetActorLocation() + FVector(0.f, 0.f, 150.f);
+	Boss = GetWorld()->SpawnActor<AMonsterBase>(BossClass, Location, FRotator::ZeroRotator, Params);
+	if (!Boss) return;
+
+	// 보스는 풀 밖의 개별 몬스터라 GameMode가 직접 사망을 구독
+	if (UStatComponent* Stat = Boss->FindComponentByClass<UStatComponent>())
+	{
+		Stat->OnDeath.AddUObject(this, &AMiniRPGGameMode::HandleBossDeath);
+	}
+
+	Boss->ActivateMonster(Location);
+	OnBossSpawned.Broadcast();
+}
+
+void AMiniRPGGameMode::HandleBossDeath()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Boss defeated - Game Clear"));
+	OnGameCleared.Broadcast();
 }

@@ -1,5 +1,6 @@
 #include "GameOverWidget.h"
 #include "Components/Button.h"
+#include "Components/TextBlock.h"
 #include "Kismet/GameplayStatics.h"
 
 void UGameOverWidget::NativeConstruct()
@@ -12,9 +13,16 @@ void UGameOverWidget::NativeConstruct()
 	}
 }
 
+void UGameOverWidget::SetTitle(const FText& InTitle)
+{
+	if (TitleText)
+	{
+		TitleText->SetText(InTitle);
+	}
+}
+
 void UGameOverWidget::HandleRestartClicked()
 {
-	// 입력 모드를 게임용으로 되돌린 뒤 레벨 재시작
 	if (APlayerController* PC = GetOwningPlayer())
 	{
 		PC->bShowMouseCursor = false;

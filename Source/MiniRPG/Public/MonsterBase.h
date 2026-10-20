@@ -48,4 +48,10 @@ protected:
 	AActor* LastAttacker;
 	bool bIsActive = false;
     FTimerHandle DeactivateTimer;
+	
+	
+	UPROPERTY(EditAnywhere, Category = "Monster")
+	class UMonsterData* MonsterData;
+
+	void ApplyMonsterData();
 };

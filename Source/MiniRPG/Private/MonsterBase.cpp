@@ -11,9 +11,13 @@
 #include "HealthWidget.h"
 #include "BrainComponent.h"
 #include "QuestComponent.h"
+#include "MonsterData.h"
+
+
 void AMonsterBase::BeginPlay()
 {
 	Super::BeginPlay();
+	ApplyMonsterData();
 
 	if (UStatComponent* Stat = FindComponentByClass<UStatComponent>())
 	{
@@ -130,10 +134,7 @@ void AMonsterBase::ActivateMonster(const FVector& SpawnLocation)
 	GetCharacterMovement()->StopMovementImmediately();
 	GetCharacterMovement()->Velocity = FVector::ZeroVector;
 
-	if (UStatComponent* Stat = FindComponentByClass<UStatComponent>())
-	{
-		Stat->ResetStat();
-	}
+	ApplyMonsterData();
 
 	if (HealthBarWidget) HealthBarWidget->SetVisibility(true);
 
@@ -174,5 +175,30 @@ void AMonsterBase::DeactivateMonster()
 			Brain->StopLogic(TEXT("Deactivated"));
 		}
 	}
-	
 }
+	void AMonsterBase::ApplyMonsterData()
+	{
+		UStatComponent* Stat = FindComponentByClass<UStatComponent>();
+
+		if (MonsterData)
+		{
+			if (Stat)
+			{
+				Stat->MaxHealth = MonsterData->MaxHealth;
+				Stat->AttackPower = MonsterData->AttackPower;
+				Stat->ExpReward = MonsterData->ExpReward;
+			}
+
+			AttackTriggerRange = MonsterData->AttackTriggerRange;
+			AttackCooldown = MonsterData->AttackCooldown;
+			AttackRange = MonsterData->AttackRange;
+			AttackRadius = MonsterData->AttackRadius;
+
+			SetActorScale3D(FVector(MonsterData->Scale));
+		}
+
+		if (Stat)
+		{
+			Stat->ResetStat();
+		}
+	}

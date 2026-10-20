@@ -17,21 +17,23 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	class UProgressBar* HealthBar;
 
-	UFUNCTION()
-	void HandleHealthChanged(float Current, float Max);
-
 	UPROPERTY(meta = (BindWidgetOptional))
 	class UProgressBar* ExpBar;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	class UTextBlock* LevelText;
 
-	UFUNCTION()
-	void HandleExpChanged(int32 CurrentExp, int32 RequiredExp, int32 Level);
-
 	UPROPERTY(meta = (BindWidgetOptional))
 	class UTextBlock* WaveText;
 
 	UFUNCTION()
+	void HandleHealthChanged(float Current, float Max);
+
+	UFUNCTION()
+	void HandleExpChanged(int32 CurrentExp, int32 RequiredExp, int32 Level);
+
+	UFUNCTION()
 	void HandleWaveProgress(int32 WaveNumber, int32 Killed, int32 Total);
+
+	void HandleBossSpawned();
 };
