@@ -18,6 +18,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Stat")
 	int32 ExpReward = 20;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Stat")
+	float MoveSpeed = 600.f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")
 	float AttackTriggerRange = 180.f;
@@ -33,4 +36,22 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Visual")
 	float Scale = 1.f;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Visual")
+	class USkeletalMesh* Mesh = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Visual")
+	TSubclassOf<class UAnimInstance> AnimClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Visual")
+	FVector MeshOffset = FVector(0.f, 0.f, -90.f);
+
+	UPROPERTY(EditDefaultsOnly, Category = "Visual")
+	float MeshYaw = -90.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Combat")
+	class UAnimMontage* AttackMontage = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Combat")
+	float AttackHitDelay = 0.f;
 };

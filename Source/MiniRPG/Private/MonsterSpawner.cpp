@@ -52,11 +52,12 @@ void AMonsterSpawner::InitializePool()
 	}
 }
 
-void AMonsterSpawner::StartSpawning(int32 InTotalToSpawn, int32 InMaxAlive, float InInterval)
+void AMonsterSpawner::StartSpawning(int32 InTotalToSpawn, int32 InMaxAlive, float InInterval, UMonsterData* InMonsterData)
 {
 	TotalToSpawn = InTotalToSpawn;
 	MaxAliveCount = InMaxAlive;
 	SpawnInterval = InInterval;
+	WaveMonsterData = InMonsterData;
 	SpawnedCount = 0;
 
 	GetWorldTimerManager().SetTimer(
@@ -116,6 +117,12 @@ void AMonsterSpawner::TrySpawn()
 
 	AMonsterBase* Monster = GetInactiveMonster();
 	if (!Monster) return;
+	
+	// 이번 웨이브의 몬스터 데이터를 입혀서 내보냄
+	if (WaveMonsterData)
+	{
+		Monster->SetMonsterData(WaveMonsterData);
+	}
 
 	Monster->ActivateMonster(GetRandomSpawnLocation());
 	++SpawnedCount;

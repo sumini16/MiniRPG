@@ -17,6 +17,9 @@ struct FWaveInfo
 
 	UPROPERTY(EditAnywhere, Category = "Wave")
 	float SpawnInterval = 2.f;
+	
+	UPROPERTY(EditAnywhere, Category = "Wave")
+	class UMonsterData* MonsterData = nullptr;
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnWaveProgressSignature, int32, WaveNumber, int32, Killed, int32, Total);

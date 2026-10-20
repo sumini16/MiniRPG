@@ -24,7 +24,7 @@ public:
 	
 	void ActivateMonster(const FVector& SpawnLocation);
     void DeactivateMonster();
-    
+	void SetMonsterData(class UMonsterData* InData) { MonsterData = InData; }
     FORCEINLINE bool IsActiveMonster() const { return bIsActive; }
         
 protected:
@@ -54,4 +54,7 @@ protected:
 	class UMonsterData* MonsterData;
 
 	void ApplyMonsterData();
+	
+	FTimerHandle AttackHitTimer;
+	void PerformAttackHit();
 };

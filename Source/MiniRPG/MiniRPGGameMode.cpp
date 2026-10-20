@@ -58,7 +58,7 @@ void AMiniRPGGameMode::StartNextWave()
 	}
 
 	const FWaveInfo& Wave = Waves[CurrentWaveIndex];
-	Spawner->StartSpawning(Wave.MonsterCount, Wave.MaxAlive, Wave.SpawnInterval);
+	Spawner->StartSpawning(Wave.MonsterCount, Wave.MaxAlive, Wave.SpawnInterval, Wave.MonsterData);
 	BroadcastProgress();
 }
 

@@ -12,7 +12,7 @@
 #include "BrainComponent.h"
 #include "QuestComponent.h"
 #include "MonsterData.h"
-
+#include "Components/SkeletalMeshComponent.h"
 
 void AMonsterBase::BeginPlay()
 {
@@ -48,6 +48,7 @@ AMonsterBase::AMonsterBase()
 
 void AMonsterBase::HandleDeath()
 {
+	GetWorldTimerManager().ClearTimer(AttackHitTimer);
 	if (LastAttacker)
 	{
 		if (UStatComponent* KillerStat = LastAttacker->FindComponentByClass<UStatComponent>())
@@ -92,7 +93,22 @@ void AMonsterBase::TryAttack(AActor* Target)
 		SetActorRotation(FRotator(0.f, Dir.Rotation().Yaw, 0.f));
 	}
 
-	Attack();
+	// 공격 모션 재생 → 휘두르는 타이밍에 판정
+	if (MonsterData && MonsterData->AttackMontage)
+	{
+		PlayAnimMontage(MonsterData->AttackMontage);
+	}
+
+	const float HitDelay = MonsterData ? MonsterData->AttackHitDelay : 0.f;
+	if (HitDelay > 0.f)
+	{
+		GetWorldTimerManager().SetTimer(
+			AttackHitTimer, this, &AMonsterBase::PerformAttackHit, HitDelay, false);
+	}
+	else
+	{
+		Attack();
+	}
 
 	bCanAttack = false;
 	GetWorldTimerManager().SetTimer(
@@ -176,9 +192,10 @@ void AMonsterBase::DeactivateMonster()
 		}
 	}
 }
-	void AMonsterBase::ApplyMonsterData()
+void AMonsterBase::ApplyMonsterData()
 	{
-		UStatComponent* Stat = FindComponentByClass<UStatComponent>();
+	
+	UStatComponent* Stat = FindComponentByClass<UStatComponent>();
 
 		if (MonsterData)
 		{
@@ -193,8 +210,21 @@ void AMonsterBase::DeactivateMonster()
 			AttackCooldown = MonsterData->AttackCooldown;
 			AttackRange = MonsterData->AttackRange;
 			AttackRadius = MonsterData->AttackRadius;
+			GetCharacterMovement()->MaxWalkSpeed = MonsterData->MoveSpeed;
 
 			SetActorScale3D(FVector(MonsterData->Scale));
+			if (MonsterData->Mesh)
+			{
+				GetMesh()->SetSkeletalMeshAsset(MonsterData->Mesh);
+
+				if (MonsterData->AnimClass)
+				{
+					GetMesh()->SetAnimInstanceClass(MonsterData->AnimClass);
+				}
+
+				GetMesh()->SetRelativeLocationAndRotation(
+					MonsterData->MeshOffset, FRotator(0.f, MonsterData->MeshYaw, 0.f));
+			}
 		}
 
 		if (Stat)
@@ -202,3 +232,11 @@ void AMonsterBase::DeactivateMonster()
 			Stat->ResetStat();
 		}
 	}
+
+void AMonsterBase::PerformAttackHit()
+{
+	UStatComponent* MyStat = FindComponentByClass<UStatComponent>();
+	if (MyStat && MyStat->IsDead()) return;   // 휘두르는 도중 죽었으면 판정 없음
+
+	Attack();
+}

@@ -16,7 +16,7 @@ public:
 
 	FOnMonsterKilledSignature OnMonsterKilled;
 
-	void StartSpawning(int32 InTotalToSpawn, int32 InMaxAlive, float InInterval);
+	void StartSpawning(int32 InTotalToSpawn, int32 InMaxAlive, float InInterval, class UMonsterData* InMonsterData);
 	void StopSpawning();
 
 protected:
@@ -38,6 +38,9 @@ protected:
 	float SpawnInterval = 3.f;
 	int32 TotalToSpawn = 0;
 	int32 SpawnedCount = 0;
+	UPROPERTY()
+	class UMonsterData* WaveMonsterData;
+	
 
 	FTimerHandle SpawnTimer;
 
