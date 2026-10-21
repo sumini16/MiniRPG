@@ -8,6 +8,7 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "SkillComponent.h"
 
 void AMiniRPGPlayerController::BeginPlay()
 {
@@ -49,6 +50,11 @@ void AMiniRPGPlayerController::SetupHealthWidget()
 	if (HealthWidget)
 	{
 		HealthWidget->BindStatComponent(Stat);
+		
+		if (USkillComponent* Skill = MyPawn->FindComponentByClass<USkillComponent>())
+		{
+			HealthWidget->BindSkillComponent(Skill);
+		}
 
 		if (AMiniRPGGameMode* GM = GetWorld()->GetAuthGameMode<AMiniRPGGameMode>())
 		{

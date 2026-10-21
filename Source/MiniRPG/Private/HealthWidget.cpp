@@ -3,6 +3,7 @@
 #include "Components/TextBlock.h"
 #include "StatComponent.h"
 #include "MiniRPGGameMode.h"
+#include "SkillComponent.h"
 
 void UHealthWidget::BindStatComponent(UStatComponent* Stat)
 {
@@ -61,4 +62,19 @@ void UHealthWidget::HandleBossSpawned()
 	{
 		WaveText->SetText(FText::FromString(TEXT("BOSS")));
 	}
+}
+
+void UHealthWidget::BindSkillComponent(USkillComponent* InSkill)
+{
+	SkillComponent = InSkill;
+}
+
+void UHealthWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	if (!SkillComponent) return;   // 몬스터 머리 위 체력바는 여기서 끝
+
+	if (SpinCooldownBar) SpinCooldownBar->SetPercent(SkillComponent->GetSpinCooldownRatio());
+	if (DashCooldownBar) DashCooldownBar->SetPercent(SkillComponent->GetDashCooldownRatio());
 }

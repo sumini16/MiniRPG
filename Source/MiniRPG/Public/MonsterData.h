@@ -48,6 +48,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Visual")
 	float MeshYaw = -90.f;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Visual")
+    class UAnimMontage* DeathMontage = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")
 	class UAnimMontage* AttackMontage = nullptr;

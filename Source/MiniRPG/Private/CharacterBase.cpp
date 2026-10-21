@@ -11,6 +11,8 @@
 #include "EnhancedInputSubsystems.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "QuestComponent.h"
+#include "SkillComponent.h"
+
 
 ACharacterBase::ACharacterBase()
 {
@@ -75,7 +77,16 @@ void ACharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 		EIC->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ACharacterBase::Move);
 		EIC->BindAction(LookAction, ETriggerEvent::Triggered, this, &ACharacterBase::Look);
 
-		EIC->BindAction(AttackAction, ETriggerEvent::Started, this, &ACharacterBase::Attack);
+		EIC->BindAction(AttackAction, ETriggerEvent::Started, this, &ACharacterBase::OnAttackInput);
+		
+		if (SkillQAction)
+		{
+			EIC->BindAction(SkillQAction, ETriggerEvent::Started, this, &ACharacterBase::UseSkillQ);
+		}
+		if (DashAction)
+		{
+			EIC->BindAction(DashAction, ETriggerEvent::Started, this, &ACharacterBase::UseDash);
+		}
 	}
 
 }
@@ -169,3 +180,56 @@ void ACharacterBase::Attack()
 	}
 }
 
+void ACharacterBase::UseSkillQ()
+{
+	if (USkillComponent* Skill = FindComponentByClass<USkillComponent>())
+	{
+		Skill->UseSpin();
+	}
+}
+
+void ACharacterBase::UseDash()
+{
+	if (USkillComponent* Skill = FindComponentByClass<USkillComponent>())
+	{
+		Skill->UseDash();
+	}
+}
+
+void ACharacterBase::OnAttackInput()
+{
+	if (bPlayerAttackLocked) return;
+	if (StatComponent && StatComponent->IsDead()) return;
+
+	bPlayerAttackLocked = true;
+
+	// 콤보: A → B → C 순서로 재생
+	if (PlayerAttackMontages.Num() > 0)
+	{
+		if (UAnimMontage* Montage = PlayerAttackMontages[ComboIndex])
+		{
+			PlayAnimMontage(Montage);
+		}
+		ComboIndex = (ComboIndex + 1) % PlayerAttackMontages.Num();
+
+		// 일정 시간 공격이 없으면 콤보 처음으로
+		GetWorldTimerManager().SetTimer(
+			ComboResetTimer, [this]() { ComboIndex = 0; }, ComboResetTime, false);
+	}
+
+	// 휘두르는 타이밍에 판정
+	if (PlayerHitDelay > 0.f)
+	{
+		GetWorldTimerManager().SetTimer(
+			PlayerHitTimer, this, &ACharacterBase::Attack, PlayerHitDelay, false);
+	}
+	else
+	{
+		Attack();
+	}
+
+	// 연타 방지: 일정 시간 후 다시 공격 가능
+	GetWorldTimerManager().SetTimer(
+		PlayerAttackLockTimer, [this]() { bPlayerAttackLocked = false; },
+		PlayerAttackInterval, false);
+}

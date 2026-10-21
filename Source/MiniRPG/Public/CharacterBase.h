@@ -43,6 +43,15 @@ protected:
 	class UInputAction* JumpAction;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	class UInputAction* AttackAction;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")   
+	class UInputAction* SkillQAction;                                     
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	class UInputAction* DashAction;
+	
+	
+	void UseSkillQ();
+	void UseDash();
+	void OnAttackInput();
 	
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
@@ -53,6 +62,26 @@ protected:
 	float AttackRange = 150.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
 	float AttackRadius = 50.0f;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	TArray<class UAnimMontage*> PlayerAttackMontages;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	float ComboResetTime = 1.2f;
+
+	int32 ComboIndex = 0;
+	FTimerHandle ComboResetTimer;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	float PlayerHitDelay = 0.25f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	float PlayerAttackInterval = 0.6f;
+
+	bool bPlayerAttackLocked = false;
+	FTimerHandle PlayerHitTimer;
+	FTimerHandle PlayerAttackLockTimer;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
 	bool bDrawAttackDebug = false;
 	

@@ -49,6 +49,22 @@ AMonsterBase::AMonsterBase()
 void AMonsterBase::HandleDeath()
 {
 	GetWorldTimerManager().ClearTimer(AttackHitTimer);
+	// 죽는 모션 재생
+	if (MonsterData && MonsterData->DeathMontage)
+	{
+		PlayAnimMontage(MonsterData->DeathMontage);
+	}
+
+	// AI 즉시 정지 (시체가 움직이거나 공격하지 않게)
+	if (AAIController* AICon = Cast<AAIController>(GetController()))
+	{
+		AICon->StopMovement();
+		if (UBrainComponent* Brain = AICon->GetBrainComponent())
+		{
+			Brain->StopLogic(TEXT("Dead"));
+		}
+	}
+	
 	if (LastAttacker)
 	{
 		if (UStatComponent* KillerStat = LastAttacker->FindComponentByClass<UStatComponent>())
@@ -134,6 +150,12 @@ void AMonsterBase::HandleDamaged(AActor* Attacker)
 
 void AMonsterBase::ActivateMonster(const FVector& SpawnLocation)
 {
+	// 풀에서 다시 꺼낼 때 쓰러진 자세 해제
+	if (UAnimInstance* Anim = GetMesh()->GetAnimInstance())
+	{
+		Anim->StopAllMontages(0.f);
+	}
+	
 	bIsActive = true;
 
 	// 1) 콜리전·이동을 먼저 켬

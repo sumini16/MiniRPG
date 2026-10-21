@@ -12,6 +12,7 @@ class MINIRPG_API UHealthWidget : public UUserWidget
 public:
 	void BindStatComponent(class UStatComponent* Stat);
 	void BindWaveProgress(class AMiniRPGGameMode* GameMode);
+	void BindSkillComponent(class USkillComponent* InSkill);
 
 protected:
 	UPROPERTY(meta = (BindWidget))
@@ -36,4 +37,15 @@ protected:
 	void HandleWaveProgress(int32 WaveNumber, int32 Killed, int32 Total);
 
 	void HandleBossSpawned();
+	
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+
+	UPROPERTY()
+	class USkillComponent* SkillComponent;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	class UProgressBar* SpinCooldownBar;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	class UProgressBar* DashCooldownBar;
 };
