@@ -26,6 +26,11 @@ void UHealthWidget::BindWaveProgress(AMiniRPGGameMode* GameMode)
 	{
 		GameMode->OnBossSpawned.AddUObject(this, &UHealthWidget::HandleBossSpawned);
 	}
+	
+	if (!GameMode->OnAnnounce.IsBoundToObject(this))
+	{
+		GameMode->OnAnnounce.AddUObject(this, &UHealthWidget::HandleAnnounce);
+	}
 }
 
 void UHealthWidget::HandleHealthChanged(float Current, float Max)
@@ -77,4 +82,21 @@ void UHealthWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 
 	if (SpinCooldownBar) SpinCooldownBar->SetPercent(SkillComponent->GetSpinCooldownRatio());
 	if (DashCooldownBar) DashCooldownBar->SetPercent(SkillComponent->GetDashCooldownRatio());
+}
+
+void UHealthWidget::HandleAnnounce(const FText& Text)
+{
+	if (!AnnounceText || Text.IsEmpty()) return;
+
+	AnnounceText->SetText(Text);
+	AnnounceText->SetVisibility(ESlateVisibility::HitTestInvisible);
+
+	// 2.5초 뒤 숨김
+	GetWorld()->GetTimerManager().SetTimer(
+		AnnounceTimer,
+		FTimerDelegate::CreateWeakLambda(this, [this]()
+		{
+			if (AnnounceText) AnnounceText->SetVisibility(ESlateVisibility::Collapsed);
+		}),
+		2.5f, false);
 }

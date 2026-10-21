@@ -53,6 +53,9 @@ public:
     class UAnimMontage* DeathMontage = nullptr;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Visual")
+	class UAnimMontage* SpawnMontage = nullptr;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Visual")
 	class UAnimMontage* HitReactMontage = nullptr;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")

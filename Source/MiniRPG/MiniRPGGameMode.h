@@ -20,11 +20,15 @@ struct FWaveInfo
 	
 	UPROPERTY(EditAnywhere, Category = "Wave")
 	class UMonsterData* MonsterData = nullptr;
+	
+	UPROPERTY(EditAnywhere, Category = "Wave")
+	FText AnnounceText;
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnWaveProgressSignature, int32, WaveNumber, int32, Killed, int32, Total);
 DECLARE_MULTICAST_DELEGATE(FOnBossSpawnedSignature);
 DECLARE_MULTICAST_DELEGATE(FOnGameClearedSignature);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnAnnounceSignature, const FText&);
 
 UCLASS(minimalapi)
 class AMiniRPGGameMode : public AGameModeBase
@@ -39,7 +43,8 @@ public:
 
 	FOnBossSpawnedSignature OnBossSpawned;
 	FOnGameClearedSignature OnGameCleared;
-
+	FOnAnnounceSignature OnAnnounce;
+	
 protected:
 	virtual void BeginPlay() override;
 
@@ -54,7 +59,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Boss")
 	TSubclassOf<class AMonsterBase> BossClass;
-
+	UPROPERTY(EditDefaultsOnly, Category = "Boss")
+	FText BossAnnounceText = FText::FromString(TEXT("BOSS - The master of the arena awakens"));
+	
 	UPROPERTY()
 	class AMonsterSpawner* Spawner;
 

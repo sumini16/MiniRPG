@@ -57,4 +57,6 @@ protected:
 	
 	FTimerHandle AttackHitTimer;
 	void PerformAttackHit();
+	
+	FTimerHandle SpawnIntroTimer;
 };

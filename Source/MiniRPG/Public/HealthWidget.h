@@ -48,4 +48,10 @@ protected:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	class UProgressBar* DashCooldownBar;
+	
+	UPROPERTY(meta = (BindWidgetOptional))
+	class UTextBlock* AnnounceText;
+
+	FTimerHandle AnnounceTimer;
+	void HandleAnnounce(const FText& Text);
 };

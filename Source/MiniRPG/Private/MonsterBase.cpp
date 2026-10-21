@@ -199,6 +199,35 @@ void AMonsterBase::ActivateMonster(const FVector& SpawnLocation)
 			Brain->RestartLogic();
 		}
 	}
+	
+	// 등장 모션이 있으면 재생하는 동안 AI 정지 → 끝나면 추격 시작
+	if (MonsterData && MonsterData->SpawnMontage)
+	{
+		const float Length = PlayAnimMontage(MonsterData->SpawnMontage);
+
+		if (AAIController* AICon = Cast<AAIController>(GetController()))
+		{
+			if (UBrainComponent* Brain = AICon->GetBrainComponent())
+			{
+				Brain->StopLogic(TEXT("SpawnIntro"));
+			}
+		}
+
+		GetWorldTimerManager().SetTimer(
+			SpawnIntroTimer,
+			FTimerDelegate::CreateWeakLambda(this, [this]()
+			{
+				if (AAIController* AICon = Cast<AAIController>(GetController()))
+				{
+					if (UBrainComponent* Brain = AICon->GetBrainComponent())
+					{
+						Brain->RestartLogic();
+					}
+				}
+			}),
+			FMath::Max(Length, 0.1f), false);
+	}
+	
 }
 
 void AMonsterBase::DeactivateMonster()
@@ -223,6 +252,10 @@ void AMonsterBase::DeactivateMonster()
 }
 void AMonsterBase::ApplyMonsterData()
 	{
+	// 카메라가 몬스터 몸에 걸려 줌인되지 않게
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	GetMesh()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	
 	
 	UStatComponent* Stat = FindComponentByClass<UStatComponent>();
 
