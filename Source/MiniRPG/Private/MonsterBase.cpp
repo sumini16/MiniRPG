@@ -139,6 +139,13 @@ void AMonsterBase::HandleDamaged(AActor* Attacker)
 	if (!Attacker || Attacker == this) return;
 	LastAttacker = Attacker;
 	
+	UStatComponent* MyStat = FindComponentByClass<UStatComponent>();
+	if (MonsterData && MonsterData->HitReactMontage && MyStat && !MyStat->IsDead())
+	{
+		PlayAnimMontage(MonsterData->HitReactMontage);
+		GetWorldTimerManager().ClearTimer(AttackHitTimer);
+	}
+	
 	AAIController* AICon = Cast<AAIController>(GetController());
 	if (!AICon) return;
 

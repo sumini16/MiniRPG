@@ -47,6 +47,14 @@ void ACharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	if (PlayerHitReactMontage)
+	{
+		if (UStatComponent* Stat = FindComponentByClass<UStatComponent>())
+		{
+			Stat->OnDamaged.AddUObject(this, &ACharacterBase::HandleHitReact);
+		}
+	}
+	
 	if (APlayerController* PC = Cast<APlayerController>(Controller))
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
@@ -232,4 +240,17 @@ void ACharacterBase::OnAttackInput()
 	GetWorldTimerManager().SetTimer(
 		PlayerAttackLockTimer, [this]() { bPlayerAttackLocked = false; },
 		PlayerAttackInterval, false);
+}
+
+void ACharacterBase::HandleHitReact(AActor* Attacker)
+{
+	UStatComponent* Stat = FindComponentByClass<UStatComponent>();
+	if (!Stat || Stat->IsDead()) return;
+
+	// 연속으로 맞아도 일정 간격으로만 반응
+	const float Now = GetWorld()->GetTimeSeconds();
+	if (Now - LastHitReactTime < HitReactInterval) return;
+	LastHitReactTime = Now;
+
+	PlayAnimMontage(PlayerHitReactMontage);
 }

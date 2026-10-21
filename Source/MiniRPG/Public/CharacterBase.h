@@ -52,6 +52,7 @@ protected:
 	void UseSkillQ();
 	void UseDash();
 	void OnAttackInput();
+	void HandleHitReact(AActor* Attacker);
 	
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
@@ -71,7 +72,15 @@ protected:
 
 	int32 ComboIndex = 0;
 	FTimerHandle ComboResetTimer;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	class UAnimMontage* PlayerHitReactMontage;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	float HitReactInterval = 0.6f;
+
+	float LastHitReactTime = -100.f;
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	float PlayerHitDelay = 0.25f;
 
