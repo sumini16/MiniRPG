@@ -12,7 +12,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "QuestComponent.h"
 #include "SkillComponent.h"
-
+#include "Kismet/GameplayStatics.h"
 
 ACharacterBase::ACharacterBase()
 {
@@ -186,6 +186,12 @@ void ACharacterBase::Attack()
 
 		DamagedActors.Add(HitActor);
 	}
+	
+	// 하나라도 맞았으면 타격음
+	if (DamagedActors.Num() > 0 && ImpactSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, ImpactSound, GetActorLocation());
+	}
 }
 
 void ACharacterBase::UseSkillQ()
@@ -210,6 +216,11 @@ void ACharacterBase::OnAttackInput()
 	if (StatComponent && StatComponent->IsDead()) return;
 
 	bPlayerAttackLocked = true;
+	if (SwingSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, SwingSound, GetActorLocation());
+	}
+	
 
 	// 콤보: A → B → C 순서로 재생
 	if (PlayerAttackMontages.Num() > 0)
@@ -253,4 +264,9 @@ void ACharacterBase::HandleHitReact(AActor* Attacker)
 	LastHitReactTime = Now;
 
 	PlayAnimMontage(PlayerHitReactMontage);
+	
+	if (HurtSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, HurtSound, GetActorLocation());
+	}
 }

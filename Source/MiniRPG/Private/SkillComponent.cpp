@@ -128,6 +128,11 @@ void USkillComponent::PerformSpinHit()
 			GetWorld(), SpinSkill->Effect, Center, FRotator::ZeroRotator, FVector(SpinSkill->EffectScale));
 	}
 	PlayCameraShake(SpinSkill);
+	if (SpinSkill->Sound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, SpinSkill->Sound, Center);
+	}
+	
 
 	if (Hits.Num() > 0)
 	{
@@ -213,6 +218,10 @@ void USkillComponent::UseDash()
 			GetWorld(), DashSkill->Effect, MyChar->GetActorLocation(), FRotator::ZeroRotator, FVector(DashSkill->EffectScale));
 	}
 	PlayCameraShake(DashSkill);
+	if (DashSkill->Sound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, DashSkill->Sound, MyChar->GetActorLocation());
+	}
 }
 
 void USkillComponent::EndDashSlide()

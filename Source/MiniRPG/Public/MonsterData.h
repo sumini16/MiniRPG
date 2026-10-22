@@ -55,6 +55,50 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Visual")
 	class UAnimMontage* SpawnMontage = nullptr;
 	
+	UPROPERTY(EditDefaultsOnly, Category = "Sound")
+	class USoundBase* SwingSound = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Sound")
+	class USoundBase* ImpactSound = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Sound")
+	class USoundBase* DeathSound = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Sound")
+	class USoundBase* SpawnSound = nullptr;
+	
+	// ───── Pattern (보스 장판) ─────
+	UPROPERTY(EditDefaultsOnly, Category = "Pattern")
+	bool bUseSlamPattern = false;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Pattern")
+	float SlamInterval = 8.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Pattern")
+	float SlamWarningTime = 1.2f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Pattern")
+	float SlamRadius = 350.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Pattern")
+	float SlamDamageMultiplier = 2.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Pattern")
+	class UAnimMontage* SlamMontage = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Pattern")
+	TSubclassOf<AActor> TelegraphClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Pattern")
+	class UParticleSystem* SlamEffect = nullptr;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Pattern")
+	float SlamEffectScale = 3.f;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Pattern")
+	TSubclassOf<class UCameraShakeBase> SlamCameraShake;
+	
+	
 	UPROPERTY(EditDefaultsOnly, Category = "Visual")
 	class UAnimMontage* HitReactMontage = nullptr;
 	

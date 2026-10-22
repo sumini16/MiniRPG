@@ -33,6 +33,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Effect")
 	float EffectScale = 1.f;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Effect")
+	class USoundBase* Sound = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Feel")
 	TSubclassOf<class UCameraShakeBase> CameraShake;

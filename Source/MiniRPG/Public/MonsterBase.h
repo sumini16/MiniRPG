@@ -59,4 +59,16 @@ protected:
 	void PerformAttackHit();
 	
 	FTimerHandle SpawnIntroTimer;
+	
+	FTimerHandle SlamLoopTimer;
+	FTimerHandle SlamHitTimer;
+
+	UPROPERTY()
+	AActor* ActiveTelegraph;
+
+	FVector SlamTarget;
+
+	void StartSlam();
+	void ExecuteSlam();
+	void StopPattern();
 };

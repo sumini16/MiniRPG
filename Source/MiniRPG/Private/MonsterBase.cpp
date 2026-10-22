@@ -13,6 +13,7 @@
 #include "QuestComponent.h"
 #include "MonsterData.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 void AMonsterBase::BeginPlay()
 {
@@ -50,10 +51,19 @@ void AMonsterBase::HandleDeath()
 {
 	GetWorldTimerManager().ClearTimer(AttackHitTimer);
 	// 죽는 모션 재생
+	
+	StopPattern();
+	
 	if (MonsterData && MonsterData->DeathMontage)
 	{
 		PlayAnimMontage(MonsterData->DeathMontage);
 	}
+	
+	if (MonsterData && MonsterData->DeathSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, MonsterData->DeathSound, GetActorLocation());
+	}
+	
 
 	// AI 즉시 정지 (시체가 움직이거나 공격하지 않게)
 	if (AAIController* AICon = Cast<AAIController>(GetController()))
@@ -113,6 +123,11 @@ void AMonsterBase::TryAttack(AActor* Target)
 	if (MonsterData && MonsterData->AttackMontage)
 	{
 		PlayAnimMontage(MonsterData->AttackMontage);
+		if (SwingSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, SwingSound, GetActorLocation());
+		}
+		
 	}
 
 	const float HitDelay = MonsterData ? MonsterData->AttackHitDelay : 0.f;
@@ -204,6 +219,11 @@ void AMonsterBase::ActivateMonster(const FVector& SpawnLocation)
 	if (MonsterData && MonsterData->SpawnMontage)
 	{
 		const float Length = PlayAnimMontage(MonsterData->SpawnMontage);
+		
+		if (MonsterData->SpawnSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, MonsterData->SpawnSound, GetActorLocation());
+		}
 
 		if (AAIController* AICon = Cast<AAIController>(GetController()))
 		{
@@ -228,12 +248,20 @@ void AMonsterBase::ActivateMonster(const FVector& SpawnLocation)
 			FMath::Max(Length, 0.1f), false);
 	}
 	
+	// 보스 장판 패턴 시작
+	if (MonsterData && MonsterData->bUseSlamPattern)
+	{
+		GetWorldTimerManager().SetTimer(
+			SlamLoopTimer, this, &AMonsterBase::StartSlam,
+			MonsterData->SlamInterval, true);
+	}
 }
 
 void AMonsterBase::DeactivateMonster()
 {
 	bIsActive = false;
-
+	StopPattern();
+	
 	SetActorHiddenInGame(true);
 	SetActorEnableCollision(false);
 	SetActorTickEnabled(false);
@@ -273,6 +301,10 @@ void AMonsterBase::ApplyMonsterData()
 			AttackRange = MonsterData->AttackRange;
 			AttackRadius = MonsterData->AttackRadius;
 			GetCharacterMovement()->MaxWalkSpeed = MonsterData->MoveSpeed;
+			SwingSound = MonsterData->SwingSound;
+			ImpactSound = MonsterData->ImpactSound;
+			
+			
 
 			SetActorScale3D(FVector(MonsterData->Scale));
 			if (MonsterData->Mesh)
@@ -301,4 +333,135 @@ void AMonsterBase::PerformAttackHit()
 	if (MyStat && MyStat->IsDead()) return;   // 휘두르는 도중 죽었으면 판정 없음
 
 	Attack();
+}
+
+void AMonsterBase::StartSlam()
+{
+	UStatComponent* MyStat = FindComponentByClass<UStatComponent>();
+	if (!MonsterData || (MyStat && MyStat->IsDead())) return;
+
+	APawn* Player = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!Player) return;
+
+	if (UStatComponent* PlayerStat = Player->FindComponentByClass<UStatComponent>())
+	{
+		if (PlayerStat->IsDead()) return;
+	}
+
+	// 1) 플레이어 발밑 바닥 위치 구하기
+	SlamTarget = Player->GetActorLocation();
+
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(Player);
+	Params.AddIgnoredActor(this);
+
+	FHitResult Hit;
+	if (GetWorld()->LineTraceSingleByChannel(
+		Hit, SlamTarget, SlamTarget - FVector(0.f, 0.f, 500.f), ECC_Visibility, Params))
+	{
+		SlamTarget = Hit.ImpactPoint;
+	}
+
+	// 2) 경고 원 표시
+	if (MonsterData->TelegraphClass)
+	{
+		ActiveTelegraph = GetWorld()->SpawnActor<AActor>(
+			MonsterData->TelegraphClass, SlamTarget + FVector(0.f, 0.f, 2.f), FRotator::ZeroRotator);
+
+		if (ActiveTelegraph)
+		{
+			const float S = MonsterData->SlamRadius / 50.f;   // 기본 원통 반지름 50 기준
+			ActiveTelegraph->SetActorScale3D(FVector(S, S, 0.02f));
+		}
+	}
+
+	// 3) 그쪽을 보고 내려찍기 모션
+	const FVector Dir = (SlamTarget - GetActorLocation()).GetSafeNormal2D();
+	SetActorRotation(Dir.Rotation());
+
+	if (MonsterData->SlamMontage)
+	{
+		PlayAnimMontage(MonsterData->SlamMontage);
+	}
+
+	// 4) 경고 시간 뒤 판정
+	GetWorldTimerManager().SetTimer(
+		SlamHitTimer, this, &AMonsterBase::ExecuteSlam, MonsterData->SlamWarningTime, false);
+}
+
+void AMonsterBase::ExecuteSlam()
+{
+	if (ActiveTelegraph)
+	{
+		ActiveTelegraph->Destroy();
+		ActiveTelegraph = nullptr;
+	}
+
+	UStatComponent* MyStat = FindComponentByClass<UStatComponent>();
+	if (!MonsterData || (MyStat && MyStat->IsDead())) return;
+
+	// 원 안에 있는 대상에게 피해 (몬스터 제외)
+	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
+	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
+
+	TArray<AActor*> Ignore;
+	Ignore.Add(this);
+
+	TArray<AActor*> Hits;
+	UKismetSystemLibrary::SphereOverlapActors(
+		GetWorld(), SlamTarget, MonsterData->SlamRadius, ObjectTypes, nullptr, Ignore, Hits);
+
+	const float Damage = (MyStat ? MyStat->AttackPower : 10.f) * MonsterData->SlamDamageMultiplier;
+
+	for (AActor* Target : Hits)
+	{
+		if (Target->IsA<AMonsterBase>()) continue;
+
+		if (UStatComponent* TargetStat = Target->FindComponentByClass<UStatComponent>())
+		{
+			TargetStat->ApplyDamage(Damage, this);
+		}
+	}
+
+	if (MonsterData->SlamEffect)
+	{
+		const FVector Scale(MonsterData->SlamEffectScale);
+
+		// 가운데 큰 폭발
+		UGameplayStatics::SpawnEmitterAtLocation(
+			GetWorld(), MonsterData->SlamEffect, SlamTarget, FRotator::ZeroRotator, Scale);
+
+		// 원 가장자리를 따라 작은 폭발 → 범위 전체를 덮음
+		const int32 Count = 6;
+		for (int32 i = 0; i < Count; ++i)
+		{
+			const float Angle = 2.f * PI * i / Count;
+			const FVector Offset(FMath::Cos(Angle), FMath::Sin(Angle), 0.f);
+
+			UGameplayStatics::SpawnEmitterAtLocation(
+				GetWorld(), MonsterData->SlamEffect,
+				SlamTarget + Offset * MonsterData->SlamRadius * 0.65f,
+				FRotator::ZeroRotator, Scale * 0.6f);
+		}
+	}
+
+	if (MonsterData->SlamCameraShake)
+	{
+		if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+		{
+			PC->ClientStartCameraShake(MonsterData->SlamCameraShake);
+		}
+	}
+}
+
+void AMonsterBase::StopPattern()
+{
+	GetWorldTimerManager().ClearTimer(SlamLoopTimer);
+	GetWorldTimerManager().ClearTimer(SlamHitTimer);
+
+	if (ActiveTelegraph)
+	{
+		ActiveTelegraph->Destroy();
+		ActiveTelegraph = nullptr;
+	}
 }
