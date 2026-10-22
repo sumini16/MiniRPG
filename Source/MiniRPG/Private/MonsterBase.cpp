@@ -44,6 +44,7 @@ AMonsterBase::AMonsterBase()
 	HealthBarWidget->SetRelativeLocation(FVector(0.f, 0.f, 110.f));
 	HealthBarWidget->SetWidgetSpace(EWidgetSpace::Screen);
 	HealthBarWidget->SetDrawSize(FVector2D(120.f, 15.f));
+	HealthBarWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	
 }
 
