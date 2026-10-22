@@ -67,6 +67,16 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Sound")
 	class USoundBase* SpawnSound = nullptr;
 	
+	
+	// ───── AI ─────
+	UPROPERTY(EditDefaultsOnly, Category = "AI")
+	float AggroFallbackTime = 15.f;   // 이 시간 동안 타겟이 없으면 플레이어 추격 (0 = 즉시)
+
+	UPROPERTY(EditDefaultsOnly, Category = "AI")
+	float AlertRadius = 1000.f;       // 발견·피격 시 이 반경의 동료도 추격
+	
+	
+	
 	// ───── Pattern (보스 장판) ─────
 	UPROPERTY(EditDefaultsOnly, Category = "Pattern")
 	bool bUseSlamPattern = false;

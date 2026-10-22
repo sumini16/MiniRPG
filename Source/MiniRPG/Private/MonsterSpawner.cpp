@@ -18,6 +18,7 @@ AMonsterSpawner::AMonsterSpawner()
 
 void AMonsterSpawner::BeginPlay()
 {
+	if (!bUsePooling) return;   // 풀링 OFF면 미리 만들지 않음
 	Super::BeginPlay();
 	InitializePool();
 	// 스폰 시작은 GameMode가 StartSpawning()으로 지시한다
@@ -78,7 +79,7 @@ AMonsterBase* AMonsterSpawner::GetInactiveMonster()
 {
 	for (AMonsterBase* Monster : MonsterPool)
 	{
-		if (Monster && !Monster->IsActiveMonster())
+		if (IsValid(Monster) && !Monster->IsActiveMonster())
 		{
 			return Monster;
 		}
@@ -101,7 +102,9 @@ FVector AMonsterSpawner::GetRandomSpawnLocation() const
 
 void AMonsterSpawner::TrySpawn()
 {
-	// 이번 웨이브 할당량을 다 채웠으면 멈춤
+	// 파괴된 몬스터(풀링 OFF) 정리
+	MonsterPool.RemoveAll([](AMonsterBase* M) { return !IsValid(M); });
+
 	if (SpawnedCount >= TotalToSpawn)
 	{
 		StopSpawning();
@@ -111,19 +114,55 @@ void AMonsterSpawner::TrySpawn()
 	int32 AliveCount = 0;
 	for (AMonsterBase* Monster : MonsterPool)
 	{
-		if (Monster && Monster->IsActiveMonster()) ++AliveCount;
+		if (IsValid(Monster) && Monster->IsActiveMonster()) ++AliveCount;
 	}
 	if (AliveCount >= MaxAliveCount) return;
 
-	AMonsterBase* Monster = GetInactiveMonster();
-	if (!Monster) return;
-	
-	// 이번 웨이브의 몬스터 데이터를 입혀서 내보냄
+	const FVector SpawnLocation = GetRandomSpawnLocation();
+
+	// ── 측정 시작 ──
+	const double StartTime = FPlatformTime::Seconds();
+
+	AMonsterBase* Monster = nullptr;
+
+	if (bUsePooling)
+	{
+		Monster = GetInactiveMonster();
+		if (!Monster) return;
+	}
+	else
+	{
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride =
+			ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		Monster = GetWorld()->SpawnActor<AMonsterBase>(
+			MonsterClass, SpawnLocation, FRotator::ZeroRotator, Params);
+		if (!Monster) return;
+
+		Monster->bDestroyOnDeactivate = true;
+
+		if (UStatComponent* Stat = Monster->FindComponentByClass<UStatComponent>())
+		{
+			Stat->OnDeath.AddUObject(this, &AMonsterSpawner::HandleMonsterDeath);
+		}
+		MonsterPool.Add(Monster);
+	}
+
 	if (WaveMonsterData)
 	{
 		Monster->SetMonsterData(WaveMonsterData);
 	}
+	Monster->ActivateMonster(SpawnLocation);
 
-	Monster->ActivateMonster(GetRandomSpawnLocation());
+	// ── 측정 끝 ──
+	const double Ms = (FPlatformTime::Seconds() - StartTime) * 1000.0;
+	TotalSpawnMs += Ms;
+	++SpawnSamples;
+
+	UE_LOG(LogTemp, Warning, TEXT("[SpawnCost] %s  this: %.3f ms  avg: %.3f ms  (n=%d)"),
+		bUsePooling ? TEXT("POOL") : TEXT("NO-POOL"),
+		Ms, TotalSpawnMs / SpawnSamples, SpawnSamples);
+
 	++SpawnedCount;
 }

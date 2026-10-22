@@ -53,6 +53,7 @@ void AMonsterBase::HandleDeath()
 	// 죽는 모션 재생
 	
 	StopPattern();
+	GetWorldTimerManager().ClearTimer(AggroFallbackTimer);
 	
 	if (MonsterData && MonsterData->DeathMontage)
 	{
@@ -167,6 +168,7 @@ void AMonsterBase::HandleDamaged(AActor* Attacker)
 	if (UBlackboardComponent* BB = AICon->GetBlackboardComponent())
 	{
 		BB->SetValueAsObject(TEXT("TargetActor"), Attacker);
+		AlertNearby(Attacker);
 	}
 }
 
@@ -255,12 +257,29 @@ void AMonsterBase::ActivateMonster(const FVector& SpawnLocation)
 			SlamLoopTimer, this, &AMonsterBase::StartSlam,
 			MonsterData->SlamInterval, true);
 	}
+	
+	// 늘어짐 방지: 일정 시간마다 타겟이 없으면 플레이어 추격
+	if (MonsterData)
+	{
+		if (MonsterData->AggroFallbackTime <= 0.f)
+		{
+			ForceAggro();
+		}
+		else
+		{
+			GetWorldTimerManager().SetTimer(
+				AggroFallbackTimer, this, &AMonsterBase::ForceAggro,
+				MonsterData->AggroFallbackTime, true);
+		}
+	}
 }
 
 void AMonsterBase::DeactivateMonster()
 {
 	bIsActive = false;
+	
 	StopPattern();
+	GetWorldTimerManager().ClearTimer(AggroFallbackTimer);
 	
 	SetActorHiddenInGame(true);
 	SetActorEnableCollision(false);
@@ -276,6 +295,11 @@ void AMonsterBase::DeactivateMonster()
 		{
 			Brain->StopLogic(TEXT("Deactivated"));
 		}
+	}
+	
+	if (bDestroyOnDeactivate)
+	{
+		Destroy();
 	}
 }
 void AMonsterBase::ApplyMonsterData()
@@ -464,4 +488,58 @@ void AMonsterBase::StopPattern()
 		ActiveTelegraph->Destroy();
 		ActiveTelegraph = nullptr;
 	}
+}
+
+void AMonsterBase::SetTargetIfEmpty(AActor* Target)
+{
+	if (!Target || !bIsActive) return;
+
+	UStatComponent* MyStat = FindComponentByClass<UStatComponent>();
+	if (MyStat && MyStat->IsDead()) return;
+
+	AAIController* AICon = Cast<AAIController>(GetController());
+	if (!AICon) return;
+
+	UBlackboardComponent* BB = AICon->GetBlackboardComponent();
+	if (!BB) return;
+
+	if (!BB->GetValueAsObject(TEXT("TargetActor")))
+	{
+		BB->SetValueAsObject(TEXT("TargetActor"), Target);
+	}
+}
+
+void AMonsterBase::AlertNearby(AActor* Target)
+{
+	if (!Target || !MonsterData) return;
+
+	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
+	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
+
+	TArray<AActor*> Ignore;
+	Ignore.Add(this);
+
+	TArray<AActor*> Nearby;
+	UKismetSystemLibrary::SphereOverlapActors(
+		GetWorld(), GetActorLocation(), MonsterData->AlertRadius, ObjectTypes,
+		AMonsterBase::StaticClass(), Ignore, Nearby);
+
+	for (AActor* Actor : Nearby)
+	{
+		if (AMonsterBase* Ally = Cast<AMonsterBase>(Actor))
+		{
+			Ally->ReceiveAlert(Target);
+		}
+	}
+}
+
+void AMonsterBase::ReceiveAlert(AActor* Target)
+{
+	// 연쇄 호출을 막기 위해 여기서는 다시 알리지 않음
+	SetTargetIfEmpty(Target);
+}
+
+void AMonsterBase::ForceAggro()
+{
+	SetTargetIfEmpty(UGameplayStatics::GetPlayerPawn(this, 0));
 }

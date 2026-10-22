@@ -49,4 +49,11 @@ protected:
 	void HandleMonsterDeath();
 	class AMonsterBase* GetInactiveMonster();
 	FVector GetRandomSpawnLocation() const;
+	
+	
+	UPROPERTY(EditAnywhere, Category = "Debug")
+	bool bUsePooling = true;
+
+	double TotalSpawnMs = 0.0;
+	int32 SpawnSamples = 0;
 };

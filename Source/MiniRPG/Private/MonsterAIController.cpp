@@ -5,6 +5,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/Character.h"
+#include "MonsterBase.h"
 
 const FName AMonsterAIController::TargetActorKey(TEXT("TargetActor"));
 
@@ -55,6 +56,11 @@ void AMonsterAIController::OnTargetPerceived(AActor* Actor, FAIStimulus Stimulus
 		if (Stimulus.WasSuccessfullySensed())
 		{
 			BB->SetValueAsObject(TargetActorKey, Actor);
+			
+			if (AMonsterBase* Monster = Cast<AMonsterBase>(GetPawn()))
+			{
+				Monster->AlertNearby(Actor);
+			}
 		}
 		else
 		{

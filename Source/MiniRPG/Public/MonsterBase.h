@@ -25,6 +25,12 @@ public:
 	void ActivateMonster(const FVector& SpawnLocation);
     void DeactivateMonster();
 	void SetMonsterData(class UMonsterData* InData) { MonsterData = InData; }
+	bool bDestroyOnDeactivate = false;   // 풀링 OFF 측정용
+	
+	void AlertNearby(AActor* Target);
+	void ReceiveAlert(AActor* Target);
+	
+	
     FORCEINLINE bool IsActiveMonster() const { return bIsActive; }
         
 protected:
@@ -71,4 +77,8 @@ protected:
 	void StartSlam();
 	void ExecuteSlam();
 	void StopPattern();
+	
+	FTimerHandle AggroFallbackTimer;
+	void ForceAggro();
+	void SetTargetIfEmpty(AActor* Target);
 };
